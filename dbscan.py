@@ -1,4 +1,5 @@
 print(__doc__)
+#lallalero lallalà
 
 import numpy as np
 
@@ -57,4 +58,3 @@ for eps in np.arange(0.1, 0.4, 0.1)
         
         plt.title('Eps=%d, min_samples=%d, estimated number of clusters: %d' % eps,min_samples,n_clusters_)
         plt.show()
-        #ciaooooo
