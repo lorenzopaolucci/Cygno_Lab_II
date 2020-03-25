@@ -79,7 +79,7 @@ for nRi in range(0,len(runI)): #len[runI]=1
             f  = ROOT.TFile.Open(tmp_file);
 
         image = rtnp.hist2array(f.Get(pic[iTr])).T #converte istogramma root in array numpy, pic contiene le immagini
-        #rebin dell'immagine per scendere di dimensione, diminuisce la risoluzione
+        #rebin dell'immagine per scendere di dimensione (da 2048x2048 a 512x512), diminuisce la risoluzione
         rebin_image     = cy.rebin(image-m_image, (rescale, rescale))
         rebin_th_image  = cy.rebin((th_image-m_image), (rescale, rescale))
 
@@ -91,32 +91,13 @@ for nRi in range(0,len(runI)): #len[runI]=1
         dbscan          = DBSCAN(eps=0.05, min_samples = 2)
         dbscan.fit(points) #clusterizzazione sui punti selezionati
 
-        clusters = dbscan.fit_predict(X_scaled) #valori di possibili cluster nell'immagine
+        clusters = dbscan.fit_predict(X_scaled) #valori di possibili cluster nell'immagine 
 
         core_samples_mask = np.zeros_like(dbscan.labels_, dtype=bool) 
         core_samples_mask[dbscan.core_sample_indices_] = True
         labels = dbscan.labels_
 
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-
-        unique_labels = set(labels)
-        colors = [plt.cm.Spectral(each)
-        for each in np.linspace(0, 1, len(unique_labels))] #sceglie la palette di   colori senza il nero
-        for k, col in zip(unique_labels, colors): #per ogni cluster, associo un colore
-          if k == -1: # Nero per il rumore
-            col = [0, 0, 0, 1]
-        
-          class_member_mask = (labels == k) #seleziona tutti i punti del cluster k
-          #plt.style.use("dark_background")
-          xy = points[class_member_mask & core_samples_mask] #plot solo se è nel cluster E è un core   point
-          plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=tuple(col), markeredgecolor='k', markersize=6)
-        
-          xy = points[class_member_mask & ~core_samples_mask] #plot solo se è nel cluster E non è core     == è un edge point del cluster
-          plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=tuple(col),
-                              markeredgecolor='k', markersize=2)
-        
-          plt.title('Estimated number of clusters: %d' % n_clusters_)
-        plt.show()
 
         for ic in range (min(dbscan.labels_), max(dbscan.labels_)): #per ogni cluster individuato: -1 è rumore, 0,1,2,3 sono i cluster
             ph = 0.
@@ -136,8 +117,24 @@ for nRi in range(0,len(runI)): #len[runI]=1
             y0end = y
             data_to_save.append([iTr, ic, dim, ph, ph/dim,
                                  x0start, y0start, x0end, y0end, width, height, pearson]) #file output: nrun,nclus,dimensione cluster,numerodifotoni,densità,varie x e y, altezza, larghezza,pearson=correlazione
-
         np.savetxt(files, data_to_save, fmt='%.10e', delimiter=" ")
         print ("out file", files)
         #if not cy.rm_file(tmp_file):
          #   print (">> File "+tmp_file+" removed")
+    col=['iTr', 'ic', 'dim', 'ph', 'ph/dim', 'x0start', 'y0start', 'x0end', 'y0end', 'width', 'height', 'pearson']
+    #pd.set_option('display.max_columns', None)
+    #pd.set_option('display.max_rows', None)
+    #pd.options.display.max_columns = None
+    #pd.options.display.max_rows = None
+    df=pd.DataFrame(data=data_to_save, columns=col)
+    print(df.head(100))
+
+####### Dati salvati: #######
+#iTr è l'indice dell'immagine che viene studiata (100 immagini)
+#ic è l'indice di ogni cluster (-1 per il rumore)
+#dim è il numero di pixel che compongono il cluster
+#ph è il numero(? perchè decimale?) di fotoni nel cluster considerato
+#x0start è l'ascissa del pixel da cui DBSCAN ha iniziato a clusterizzare
+#y0start è l'ordinata del pixel da cui DBSCAN ha iniziato a clusterizzare
+#x0end è l'ascissa del pixel da cui DBSCAN ha finito di clusterizzare
+#y0end è l'ordinata del pixel da cui DBSCAN ha finito di clusterizzare
