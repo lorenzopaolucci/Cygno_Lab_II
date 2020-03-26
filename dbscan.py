@@ -1,9 +1,9 @@
 print(__doc__)
 
-#lallalero lallalà
-
-#miao
 import numpy as np
+import matplotlib
+
+from matplotlib.backends.backend_pdf import PdfPages
 
 from sklearn.cluster import DBSCAN
 from sklearn import metrics
@@ -21,8 +21,8 @@ X = StandardScaler().fit_transform(X) #rinormalizza media=0, std=1
 
 # #############################################################################
 # Parametri DBSCAN 
-for eps in np.arange(0.1, 0.4, 0.1)
-    for min_samples in np.arange(5,20,5)
+for eps in np.arange(0.1, 0.4, 0.1):
+    for min_samples in np.arange(5,20,5):
     
         db = DBSCAN(eps, min_samples).fit(X)
         core_samples_mask = np.zeros_like(db.labels_, dtype=bool) #inizializza un array booleano,   della stessa forma di labels_
@@ -35,7 +35,7 @@ for eps in np.arange(0.1, 0.4, 0.1)
         
         print('Estimated number of clusters: %d' % n_clusters_)
         print('Estimated number of noise points: %d' % n_noise_)
-        
+                
         # #############################################################################
         # Plot
         import matplotlib.pyplot as plt
@@ -58,5 +58,5 @@ for eps in np.arange(0.1, 0.4, 0.1)
             plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=tuple(col),
                     markeredgecolor='k', markersize=6)
         
-        plt.title('Eps=%d, min_samples=%d, estimated number of clusters: %d' % eps,min_samples,n_clusters_)
+        plt.title('Eps=%d, min_samples=%d, estimated number of clusters: %d' % (eps,min_samples,n_clusters_))
         plt.show()
