@@ -143,14 +143,15 @@ for nRi in range(0,len(runI)): #len[runI]=1
         print ("out file", files)
         #if not cy.rm_file(tmp_file):
          #   print (">> File "+tmp_file+" removed")
-      col=['iTr', 'ic', 'dim', 'ph', 'ph/dim', 'x0start', 'y0start', 'x0end', 'y0end', 'width', 'height', 'pearson']
-      #pd.set_option('display.max_columns', None)
-      #pd.set_option('display.max_rows', None)
-      #pd.options.display.max_columns = None
-      #pd.options.display.max_rows = None
-      df=pd.DataFrame(data=data_to_save, columns=col)
-      print(df.head(100))
-######## Dati salvati: #######
+    col=['iTr', 'ic', 'dim', 'ph', 'ph/dim', 'x0start', 'y0start', 'x0end', 'y0end', 'width', 'height', 'pearson']
+    #pd.set_option('display.max_columns', None)
+    #pd.set_option('display.max_rows', None)
+    #pd.options.display.max_columns = None
+    #pd.options.display.max_rows = None
+    df=pd.DataFrame(data=data_to_save, columns=col)
+    print(df.head(100))
+
+####### Dati salvati: #######
 #iTr è l'indice dell'immagine che viene studiata (100 immagini)
 #ic è l'indice di ogni cluster (-1 per il rumore)
 #dim è il numero di pixel che compongono il cluster
