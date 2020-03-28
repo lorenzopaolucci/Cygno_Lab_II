@@ -80,7 +80,7 @@ for nRi in range(0,len(runI)): #len[runI]=1
             f  = ROOT.TFile.Open(tmp_file);
 
         image = rtnp.hist2array(f.Get(pic[iTr])).T #converte istogramma root in array numpy, pic contiene le immagini
-        #rebin dell'immagine per scendere di dimensione, diminuisce la risoluzione
+        #rebin dell'immagine per scendere di dimensione (da 2048x2048 a 512x512), diminuisce la risoluzione
         rebin_image     = cy.rebin(image-m_image, (rescale, rescale))
         rebin_th_image  = cy.rebin((th_image-m_image), (rescale, rescale))
 
@@ -92,13 +92,14 @@ for nRi in range(0,len(runI)): #len[runI]=1
         dbscan          = DBSCAN(eps=0.05, min_samples = 2)
         dbscan.fit(points) #clusterizzazione sui punti selezionati
 
-        clusters = dbscan.fit_predict(X_scaled) #valori di possibili cluster nell'immagine
+        clusters = dbscan.fit_predict(X_scaled) #valori di possibili cluster nell'immagine 
 
         core_samples_mask = np.zeros_like(dbscan.labels_, dtype=bool) 
         core_samples_mask[dbscan.core_sample_indices_] = True
         labels = dbscan.labels_
 
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+
 
         if plot_image != 0:
           unique_labels = set(labels)
@@ -138,7 +139,6 @@ for nRi in range(0,len(runI)): #len[runI]=1
             y0end = y
             data_to_save.append([iTr, ic, dim, ph, ph/dim,
                                  x0start, y0start, x0end, y0end, width, height, pearson]) #file output: nrun,nclus,dimensione cluster,numerodifotoni,densità,varie x e y, altezza, larghezza,pearson=correlazione
-
         np.savetxt(files, data_to_save, fmt='%.10e', delimiter=" ")
         print ("out file", files)
         #if not cy.rm_file(tmp_file):
