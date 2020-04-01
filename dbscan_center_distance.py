@@ -1,4 +1,5 @@
-#Da eseguire dopo dbscan.py
+# Da eseguire dopo dbscan.py
+# Seleziona l'ultima configurazione buona e modifica la distanza dei centri sistematicamente, plot eff vs distanza
 
 eps=eps_range[max_index]
 min_samples=min_samples_range[max_index]
