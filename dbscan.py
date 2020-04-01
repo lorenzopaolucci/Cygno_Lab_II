@@ -9,18 +9,27 @@ from sklearn.preprocessing import StandardScaler
 info_cluster=0 #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
 plot_cluster=0 #if !=0 plot dei cluster individuati
 plot_2d=0      #if !=0 plot di eff vs min_samples per ogni eps
-plot_3d=1      #if !=0 plot istogramma eps vs min samples vs eff
+plot_3d=0      #if !=0 plot istogramma eps vs min samples vs eff
+plot_cen=1     #if !=0 plot grafico eps e min_samples migliori vs distanza dei centri
 print_eff=0    #if !=0 print efficienza per ogni run
 
+##############################################################################
+# Genera punti nel piano, gaussiani centrati in centers
 
+centers_distance = []
+eps_best = []
+min_samples_best = []
+efficiency_best = []
 
-    ##############################################################################
-    # Genera punti nel piano, gaussiani centrati in centers
-    centers = [[1, 0], [-1, 0]]
+for cen in np.arange(0.3, 1.6, 0.1):
+
+    centers = [[cen, 0], [-cen, 0]]
     n_samples = 1000
     sigma = 0.4
     X, labels_true = make_blobs(n_samples=n_samples, centers=centers, cluster_std=sigma,
                                 random_state=0)
+    centers_distance.append(2*cen/sigma)
+    print('The distance of the centers (measured in sigma) is: %.2lf' %(2*cen/sigma))
 
     #X = StandardScaler().fit_transform(X) #rinormalizza media=0, std=1
 
@@ -41,7 +50,7 @@ print_eff=0    #if !=0 print efficienza per ogni run
         for min_samples in np.arange(2, 20, 1):
 
             if info_cluster !=0 or plot_cluster !=0 or plot_2d !=0 or print_eff !=0:
-              print('############         Eps: %f Min_Samples: %f         ############\n' %(eps,min_samples))
+              print('############         Eps: %.2f\tMin_Samples: %d         ############\n' %(eps,min_samples))
           
 
             #plot_3d
@@ -190,7 +199,29 @@ print_eff=0    #if !=0 print efficienza per ogni run
       plt.show()
 
     max_index = efficiency_list.index(max(efficiency_list))
+    eps_best.append(eps_range[max_index])
+    min_samples_best.append(min_samples_range[max_index])
+    efficiency_best.append(max(efficiency_list))
 
     print('The maximum value of efficiency is: %.3lf \tfor eps: %.2lf, min_samples: %d' %(max(efficiency_list), eps_range[max_index], min_samples_range[max_index]))
 
+if plot_cen != 0:
+    fig1 = plt.figure(1)
+    plt.title('Best eps VS distance of centers')
+    plt.xlabel('Distance between centers [# sigmas]', fontsize=15)
+    plt.ylabel('Best Eps', fontsize=15)
+    plt.plot(centers_distance, eps_best, 'bo', centers_distance, eps_best)
 
+    fig2 = plt.figure(2)
+    plt.title('Best min_samples VS distance of centers')
+    plt.xlabel('Distance between centers [# sigmas]', fontsize=15)
+    plt.ylabel('Best min_samples', fontsize=15)
+    plt.plot(centers_distance, min_samples_best, 'bo', centers_distance, min_samples_best)
+
+    fig3 = plt.figure(3)
+    plt.title('Max efficiency VS distance of centers')
+    plt.xlabel('Distance between centers [# sigmas]', fontsize=15)
+    plt.ylabel('Max efficiency', fontsize=15)
+    plt.plot(centers_distance, efficiency_best, 'bo', centers_distance, efficiency_best)
+
+    plt.show()
