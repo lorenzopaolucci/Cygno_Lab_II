@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 
 info_cluster=0 #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
 plot_cluster=0 #if !=0 plot dei cluster individuati
-plot_2d=1      #if !=0 plot di eff vs min_samples per ogni eps
+plot_2d=0      #if !=0 plot di eff vs min_samples per ogni eps
 plot_3d=0      #if !=0 plot istogramma eps vs min samples vs eff
 print_eff=0    #if !=0 print efficienza per ogni run
 
@@ -23,7 +23,7 @@ sigma = 10          # Sigma per la generazione del blob
 
 # Genero L x L pixel secondo una gaussiana mu=0, sigma=1
 
-grid = np.zeros((L,L))  # Contiene le "coordinate" di ogni pixel, e il valore del segnale 
+grid = np.zeros((L,L))     # Contiene le "coordinate" di ogni pixel, e il valore del segnale 
 
 background = 0             # Contatore per il fondo
 
@@ -100,12 +100,10 @@ print('Background points: %d\nNew signal over background (out of %d generated): 
 # STUDIO EFFICIENZA DI DBSCAN
 
 
-
-
 ##############################################################################
 
 
-for eps in np.arange(1, 6, 0.5):
+for eps in np.arange(1, 10, 0.5):
 
     # plot
     eps_range = []
@@ -116,9 +114,6 @@ for eps in np.arange(1, 6, 0.5):
 
     for min_samples in np.arange(2, 16, 1):
 
-        if info_cluster !=0 or plot_cluster !=0 or plot_2d !=0 or print_eff !=0:
-          print('############         Eps: %.2f\tMin_Samples: %d         ############\n' %(eps,min_samples))
-      
 
         #plot_3d
         eps_range.append(eps)
@@ -126,13 +121,14 @@ for eps in np.arange(1, 6, 0.5):
 
 
         db = DBSCAN(eps, min_samples).fit(points)                   # CLUSTERING
-        core_samples_mask = np.zeros_like(db.labels_,dtype=bool)   # Inizializza un array booleano, della stessa forma di labels_
+        core_samples_mask = np.zeros_like(db.labels_,dtype=bool)    # Inizializza un array booleano, della stessa forma di labels_
         core_samples_mask[db.core_sample_indices_] = True           # Considera tutti i core trovati da dbscan
         labels = db.labels_
         
         
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0) # Conta i cluster, togliendo il  rumore (k=-1)
         n_noise_ = list(labels).count(-1)                           # Numero di punti di rumore
+        expected_noise = signal+background-n_samples
 
         if info_cluster != 0:
           print('Estimated number of clusters: %d' % n_clusters_)
@@ -140,25 +136,29 @@ for eps in np.arange(1, 6, 0.5):
 
         ##############################################################################
         # Efficienza
-        
-        eff_noise = 1-n_noise_/(signal+background)
+        if n_noise_ <= expected_noise:
+          eff_noise = 1 - (expected_noise-n_noise_)/(expected_noise)
+          
+        else:
+          eff_noise = 1- (n_noise_-expected_noise)/(n_samples)
+
         efficiency_noise_list.append(eff_noise)
         eff_cluster = 0
         weight = 0
   
         ##############################################################################
-        # Plot
+
         import matplotlib.pyplot as plt
 
         unique_labels = set(labels)
         colors = [plt.cm.Spectral(each)
         for each in np.linspace(0, 1, len(unique_labels))] # Sceglie la palette di   colori senza il nero
 
-        for k, col in zip(unique_labels, colors):   # Per ogni cluster, associo un colore
+        for k, col in zip(unique_labels, colors):          # Per ogni cluster, associo un colore
             if k == -1:
-              col = [0, 0, 0, 1]                    # Nero per il rumore
+              col = [0, 0, 0, 1]                           # Nero per il rumore
         
-            class_member_mask = (labels == k)       # Seleziona tutti i punti del cluster k
+            class_member_mask = (labels == k)              # Seleziona tutti i punti del cluster k
 
             xy_core = points[class_member_mask & core_samples_mask]    # Solo se è nel cluster E è un core point
             xy_border = points[class_member_mask & ~core_samples_mask] # Solo se è nel cluster E non è core  ==  è un edge point del cluster
@@ -191,7 +191,7 @@ for eps in np.arange(1, 6, 0.5):
 
               distance_from_centers.append(min(distance))                                  # Centro più vicino
 
-              expected = (signal-n_noise_)/len(centers)                                 # Num atteso di membri (meno il rumore)
+              expected = (signal-n_noise_)/len(centers)                                    # Num atteso di membri (meno il rumore)
               
               occurrence = (expected - abs(expected - (len(xy_border)+len(xy_core)))) / (expected) # Differenza rispetto all'atteso
 
@@ -263,4 +263,5 @@ for eps in np.arange(1, 6, 0.5):
 
 #print('The maximum value of efficiency is: %.3lf \tfor eps: %.2lf, min_samples: %d' %(max(efficiency_list), eps_range[max_index], min_samples_range[max_index]))
 
+  
   
