@@ -20,7 +20,11 @@ n_samples = 1000    # Numero di segnali generati
 sigma = 10          # Sigma per la generazione del blob
 
 
-for th in np.arange(0.5,3,0.5):
+for th in np.arange(0.5,1.5,0.1):
+
+    eps_range = []       
+    best_min_samples = []
+    best_eff = []
 
     # Genero L x L pixel secondo una gaussiana mu=0, sigma=1
 
@@ -94,7 +98,6 @@ for th in np.arange(0.5,3,0.5):
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(10, 10)
     plt.show()
-
     print('Background points: %d\nNew signal over background (out of %d generated): %d' %(background,n_samples,signal))
 
 
@@ -107,19 +110,13 @@ for th in np.arange(0.5,3,0.5):
     for eps in np.arange(1, 10, 0.5):
 
         # plot
-        eps_range = []
         efficiency_noise_list = []
-        efficiency_cluster_list = []
         min_samples_range = []
 
 
         for min_samples in np.arange(2, 16, 1):
 
-
-            #plot_3d
-            eps_range.append(eps)
             min_samples_range.append(min_samples)
-
 
             db = DBSCAN(eps, min_samples).fit(points)                   # CLUSTERING
             core_samples_mask = np.zeros_like(db.labels_,dtype=bool)    # Inizializza un array booleano, della stessa forma di labels_
@@ -170,58 +167,15 @@ for th in np.arange(0.5,3,0.5):
 
                   plt.plot(xy_border[:, 0], xy_border[:, 1], '.',
                         markeredgecolor=tuple(col), markersize=5)
-                
-                if k != -1 and n_clusters_ >= len(centers): # Solo se # cluster > # centri generati
-                  x = 0
-                  y = 0
-                  for ic in xy_core:
-                    x += ic[0]
-                    y += ic[1]
-                  for ib in xy_border:
-                    x += ib[0]
-                    y += ib[1]
-                  
-                  n_members=list(labels).count(k)           # Membri cluster k
-
-                  distance = []
-                  distance_from_centers = []
-
-                  for i_centers in centers:
-                    distance.append( np.sqrt( ((y/(n_members)-i_centers[1])**2
-                                                       + ((x/(n_members))-i_centers[0])**2 ))) # Dist media dei membri dai diversi centri generati
-
-                  distance_from_centers.append(min(distance))                                  # Centro più vicino
-
-                  expected = (signal-n_noise_)/len(centers)                                    # Num atteso di membri (meno il rumore)
-                  
-                  occurrence = (expected - abs(expected - (len(xy_border)+len(xy_core)))) / (expected) # Differenza rispetto all'atteso
-
-                  eff_cluster += occurrence / distance_from_centers[-1]                                # Eff_cluster: somma delle differenze pesate con 1/dist dal centro più vicino
-                  
-                  weight += 1/distance_from_centers[-1]
-                  
-                  if info_cluster !=0:
-                    print('\n\tcluster label %.lf'%(k))
-                    print('distanza del cluster da uno dei centri: %lf' %(distance_from_centers[-1]))
-                    print('occurences: %lf' %occurrence)
-                    print('elementi nel cluster: %lf' %(len(xy_border)+len(xy_core)))
-                    print('elementi in tutti i cluster: %lf' %(n_samples-n_noise_))
-                    print('somma numeratore efficienza cluster: %lf' %(eff_cluster))
-                    print('pesi: %lf' %(weight))
                   
             if plot_cluster != 0:
               plt.title('Eps=%.1lf, min_samples=%d, estimated number of clusters: %d' % (eps,min_samples,n_clusters_))
               fig = matplotlib.pyplot.gcf()
               fig.set_size_inches(10, 10)
               plt.show()
-            
-            if  n_clusters_ >= len(centers):
-              eff_cluster /= weight
-
-            efficiency_cluster_list.append(eff_cluster)
 
             if print_eff != 0:
-              print('Noise efficiency: %.3lf \tCluster efficiency: %.3lf\n' %(eff_noise, eff_cluster))
+              print('Noise efficiency: %.3lf \tCluster efficiency: %.3lf\n' %eff_noise)
 
 
         if plot_2d != 0:
@@ -231,30 +185,21 @@ for th in np.arange(0.5,3,0.5):
           plt.xlabel('Min samples')
           plt.ylabel('Efficiency Noise')
           plt.xlim(-0.1, max(min_samples_range)+5)
-
-          plt.figure(2) #Terry
-          plt.title('Andamento Efficiency Cluster in funzione di min_samples con eps=%lf' % eps)
-          plt.plot(min_samples_range,efficiency_cluster_list,'g^',min_samples_range,efficiency_cluster_list,'b')
-          plt.xlabel('Min samples')
-          plt.ylabel('Efficiency Cluster')
-          plt.xlim(-0.1, max(min_samples_range)+5)
           plt.show()
+
+        eps_range.append(eps)
+        best_min_samples.append(min_samples_range[efficiency_noise_list.index(max(efficiency_noise_list))])
+        best_eff.append(max(efficiency_noise_list))
+
 
         if info_cluster !=0 or plot_cluster !=0 or plot_2d !=0 or print_eff !=0:
           print('\n ################################################################## \n')
 
-    #if plot_3d != 0:
-     # fig = plt.figure()
-     # dx = np.full_like(eps_range, 0.04)
-     # dy = np.full_like(min_samples_range, 1)
-     # z = np.zeros_like(efficiency_list)
-     # ax = fig.add_subplot(111, projection='3d')
-     # plt.title('Efficiency Histogram', fontsize=20)
-     # plt.xlabel('eps', fontsize=15)
-     # plt.ylabel('min samples', fontsize=15)
-     # fig.set_size_inches(11,8)
-     # ax.bar3d(eps_range, min_samples_range, z, dx, dy, efficiency_list, color='g')
-     # plt.show()
+    index = best_eff.index(max(best_eff))
+    eps = eps_range[index]
+    min_samples = best_min_samples[index]
+
+    print(eps,min_samples,max(best_eff))
 
     #max_index = efficiency_list.index(max(efficiency_list))
     #eps_best.append(eps_range[max_index])
@@ -262,4 +207,5 @@ for th in np.arange(0.5,3,0.5):
     #efficiency_best.append(max(efficiency_list))
 
     #print('The maximum value of efficiency is: %.3lf \tfor eps: %.2lf, min_samples: %d' %(max(efficiency_list), eps_range[max_index], min_samples_range[max_index]))
+
 
