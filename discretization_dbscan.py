@@ -207,7 +207,8 @@ for th in np.arange(0.5,1.5,0.1):
     labels = db.labels_
     unique_labels = set(labels)
 
-    hist = np.zeros(L)
+    hist = np.zeros(20)
+    xy = []
 
     for k in unique_labels:
 
@@ -223,10 +224,10 @@ for th in np.arange(0.5,1.5,0.1):
           
           x = xy[j][0]
 
-          hist[x] += 1
+          hist[int(x/5)] += 1
 
-    range_x = range(0,L,1)
+    range_x = range(0,len(hist),1)
 
-    plt.hist(hist,bins=len(hist))
-    plt.plot(range_x,hist)
+    plt.bar(range_x,hist)
+
     plt.show()
