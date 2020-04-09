@@ -201,11 +201,32 @@ for th in np.arange(0.5,1.5,0.1):
 
     print(eps,min_samples,max(best_eff))
 
-    #max_index = efficiency_list.index(max(efficiency_list))
-    #eps_best.append(eps_range[max_index])
-    #min_samples_best.append(min_samples_range[max_index])
-    #efficiency_best.append(max(efficiency_list))
+    db = DBSCAN(eps, min_samples).fit(points)                   
+    core_samples_mask = np.zeros_like(db.labels_,dtype=bool)    
+    core_samples_mask[db.core_sample_indices_] = True           
+    labels = db.labels_
+    unique_labels = set(labels)
 
-    #print('The maximum value of efficiency is: %.3lf \tfor eps: %.2lf, min_samples: %d' %(max(efficiency_list), eps_range[max_index], min_samples_range[max_index]))
+    hist = np.zeros(L)
 
+    for k in unique_labels:
 
+      if k != -1:
+
+        class_member_mask = (labels == k)
+        xy_core = points[class_member_mask & core_samples_mask]
+        xy_border = points[class_member_mask & ~core_samples_mask]
+
+        xy = np.concatenate((xy_core,xy_border))
+
+        for j in np.arange(0,len(xy),1):
+          
+          x = xy[j][0]
+
+          hist[x] += 1
+
+    range_x = range(0,L,1)
+
+    plt.hist(hist,bins=len(hist))
+    plt.plot(range_x,hist)
+    plt.show()
