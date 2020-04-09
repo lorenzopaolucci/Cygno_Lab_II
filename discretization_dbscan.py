@@ -10,7 +10,6 @@ from sklearn.preprocessing import StandardScaler
 info_cluster=0 #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
 plot_cluster=0 #if !=0 plot dei cluster individuati
 plot_2d=0      #if !=0 plot di eff vs min_samples per ogni eps
-plot_3d=0      #if !=0 plot istogramma eps vs min samples vs eff
 print_eff=0    #if !=0 print efficienza per ogni run
 
 
@@ -20,7 +19,7 @@ n_samples = 1000    # Numero di segnali generati
 sigma = 10          # Sigma per la generazione del blob
 
 
-for th in np.arange(0.5,1.5,0.1):
+for th in np.arange(0.5,3,0.1):
 
     eps_range = []       
     best_min_samples = []
@@ -45,7 +44,7 @@ for th in np.arange(0.5,1.5,0.1):
         else:
 
           grid[i][j] = 1
-
+          plt.plot(j,i,'.', markerfacecolor='k', markeredgecolor='k', markersize=5)
           background+=1
 
     # Genero il blob
@@ -56,11 +55,17 @@ for th in np.arange(0.5,1.5,0.1):
 
     X_discrete = np.zeros_like(X)
 
-    for i in np.arange(0,2,1):
+    for j in np.arange(0,len(X),1):
 
-      for j in np.arange(0,len(X),1):
+      for i in np.arange(0,2,1):
 
         X_discrete[j][i] = np.around(X[j][i])
+
+        if i == 0:
+          aux1 = X_discrete[j][i]
+        else:
+          aux2 = X_discrete[j][i]
+      plt.plot(aux1,aux2,'.', markerfacecolor='r', markeredgecolor='r', markersize=5)
 
     # Riempio la griglia
 
@@ -77,7 +82,7 @@ for th in np.arange(0.5,1.5,0.1):
         
         signal+=1
 
-    # Plot di segnale+rumore & creazione array coordinate
+    # Creazione array coordinate per DBSCAN
 
     points_list= []
 
@@ -86,8 +91,6 @@ for th in np.arange(0.5,1.5,0.1):
       for j in np.arange(0,L,1):
 
         if grid[i][j] != 0:
-
-          plt.plot(j,i,'.', markeredgecolor='r', markersize=5)
 
           x = j
           y = i
@@ -114,7 +117,7 @@ for th in np.arange(0.5,1.5,0.1):
         min_samples_range = []
 
 
-        for min_samples in np.arange(2, 16, 1):
+        for min_samples in np.arange(2, 20, 1):
 
             min_samples_range.append(min_samples)
 
@@ -175,7 +178,7 @@ for th in np.arange(0.5,1.5,0.1):
               plt.show()
 
             if print_eff != 0:
-              print('Noise efficiency: %.3lf \tCluster efficiency: %.3lf\n' %eff_noise)
+              print('Noise efficiency: %.3lf' %eff_noise)
 
 
         if plot_2d != 0:
@@ -199,7 +202,7 @@ for th in np.arange(0.5,1.5,0.1):
     eps = eps_range[index]
     min_samples = best_min_samples[index]
 
-    print(eps,min_samples,max(best_eff))
+    print('Best eps: %lf Best min_samples: %lf Max Efficiency: %lf' %(eps,min_samples,max(best_eff)))
 
     db = DBSCAN(eps, min_samples).fit(points)                   
     core_samples_mask = np.zeros_like(db.labels_,dtype=bool)    
@@ -210,13 +213,25 @@ for th in np.arange(0.5,1.5,0.1):
     hist = np.zeros(20)
     xy = []
 
-    for k in unique_labels:
+    colors = [plt.cm.Spectral(each)
+    for each in np.linspace(0, 1, len(unique_labels))]
+
+    for k,col in zip(unique_labels,colors):
+
+      if k == -1:
+        col = [0, 0, 0, 1]                          
+            
+      class_member_mask = (labels == k)              
+      xy_core = points[class_member_mask & core_samples_mask]    
+      xy_border = points[class_member_mask & ~core_samples_mask] 
+                
+      plt.plot(xy_core[:, 0], xy_core[:, 1], '.',
+                        markeredgecolor=tuple(col), markersize=5)
+
+      plt.plot(xy_border[:, 0], xy_border[:, 1], '.',
+                        markeredgecolor=tuple(col), markersize=5)
 
       if k != -1:
-
-        class_member_mask = (labels == k)
-        xy_core = points[class_member_mask & core_samples_mask]
-        xy_border = points[class_member_mask & ~core_samples_mask]
 
         xy = np.concatenate((xy_core,xy_border))
 
@@ -226,8 +241,16 @@ for th in np.arange(0.5,1.5,0.1):
 
           hist[int(x/5)] += 1
 
-    range_x = range(0,len(hist),1)
+    fig = matplotlib.pyplot.gcf()
+    fig.set_size_inches(10, 10)
+    plt.show()
 
-    plt.bar(range_x,hist)
+    range_x = range(0,len(hist),1)
+    x = np.linspace(0,len(hist),1000)
+
+    plt.bar(range_x,hist/(sum(hist)))
+   #plt.plot(x, np.exp(-0.5*(x-49/5)**2/((sigma/5)**2) )/(np.sqrt(2*np.pi)*sigma/5), color='yellow', linewidth=2)
 
     plt.show()
+
+    print('####################################################################################################')
