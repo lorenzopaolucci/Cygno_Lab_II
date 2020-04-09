@@ -248,7 +248,7 @@ for th in np.arange(0.5,3,0.1):
     range_x = range(0,len(hist),1)
     x = np.linspace(0,len(hist),1000)
 
-    plt.bar(range_x,hist/(sum(hist)))
+    plt.bar(range_x,hist)
    #plt.plot(x, np.exp(-0.5*(x-49/5)**2/((sigma/5)**2) )/(np.sqrt(2*np.pi)*sigma/5), color='yellow', linewidth=2)
 
     plt.show()
