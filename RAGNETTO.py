@@ -24,9 +24,9 @@ for th in np.arange(1,4,1):
     best_min_samples = []
     best_eff = []
 
-    # Genero L x L pixel secondo una gaussiana mu=0, sigma=1
+    # Genero L x L pixel 
 
-    grid = np.zeros((L,L))     # Contiene le "coordinate" di ogni pixel, e il valore del segnale
+    grid = np.zeros((L,L))        # Contiene le "coordinate" di ogni pixel, e il valore del segnale
     background = np.zeros((L,L))  # Griglia background
     signal = np.zeros((L,L))      # Griglia segnale
 
@@ -52,6 +52,7 @@ for th in np.arange(1,4,1):
       signal[x][y] = r
 
     # Somma background+segnale
+
     count=0
     for j in np.arange(0,L,1):
 
@@ -63,6 +64,7 @@ for th in np.arange(1,4,1):
           count += 1
       
     print(count)
+
     # Creazione array coordinate per DBSCAN
 
     points_list= []
@@ -83,12 +85,12 @@ for th in np.arange(1,4,1):
     plt.colorbar()
     plt.show()
 
-    ##############################################################################
+
     # STUDIO EFFICIENZA DI DBSCAN
 
     for eps in np.arange(1, 6, 1):
 
-        # plot
+        # Plot efficienza
         efficiency_noise_list = []
         min_samples_range = []
 
@@ -97,31 +99,35 @@ for th in np.arange(1,4,1):
 
             min_samples_range.append(min_samples)
 
-            db = DBSCAN(eps, min_samples).fit(points)                   # CLUSTERING
-            core_samples_mask = np.zeros_like(db.labels_,dtype=bool)    # Inizializza un array booleano, della stessa forma di labels_
-            core_samples_mask[db.core_sample_indices_] = True           # Considera tutti i core trovati da dbscan
+            # CLUSTERING
+
+            db = DBSCAN(eps, min_samples).fit(points)                   
+            core_samples_mask = np.zeros_like(db.labels_,dtype=bool)       # Inizializza un array booleano, della stessa forma di labels_
+            core_samples_mask[db.core_sample_indices_] = True              # Considera tutti i core trovati da dbscan
             labels = db.labels_
-            
-            n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0) # Conta i cluster, togliendo il  rumore (k=-1)
-            n_noise_ = list(labels).count(-1)                           # Numero di punti di rumore
-            expected_noise = signal+background-n_samples
+
+            n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)    # Conta i cluster, togliendo il  rumore (k=-1)
+            n_noise_ = list(labels).count(-1)                              # Numero di punti di rumore
 
             if info_cluster != 0:
+
               print('Estimated number of clusters: %d' % n_clusters_)
               print('Estimated number of noise points: %d' % n_noise_)
 
-            ##############################################################################
+            # Plot dei cluster individuati
+
             import matplotlib.pyplot as plt
 
             unique_labels = set(labels)
             colors = [plt.cm.Spectral(each)
-            for each in np.linspace(0, 1, len(unique_labels))] # Sceglie la palette di   colori senza il nero
+            for each in np.linspace(0, 1, len(unique_labels))]             # Sceglie la palette di   colori senza il nero
 
-            for k, col in zip(unique_labels, colors):          # Per ogni cluster, associo un colore
+            for k, col in zip(unique_labels, colors):                      # Per ogni cluster, associo un colore
+                
                 if k == -1:
-                  col = [0, 0, 0, 1]                           # Nero per il rumore
+                  col = [0, 0, 0, 1]                                       # Nero per il rumore
             
-                class_member_mask = (labels == k)              # Seleziona tutti i punti del cluster k
+                class_member_mask = (labels == k)                          # Seleziona tutti i punti del cluster k
 
                 xy_core = points[class_member_mask & core_samples_mask]    # Solo se è nel cluster E è un core point
                 xy_border = points[class_member_mask & ~core_samples_mask] # Solo se è nel cluster E non è core  ==  è un edge point del cluster
@@ -134,8 +140,8 @@ for th in np.arange(1,4,1):
                         markeredgecolor=tuple(col), markersize=5)
                   
             if plot_cluster != 0:
+
               plt.title('Eps=%.1lf, min_samples=%d, estimated number of clusters: %d' % (eps,min_samples,n_clusters_))
               fig = matplotlib.pyplot.gcf()
               fig.set_size_inches(10, 10)
               plt.show()
-
