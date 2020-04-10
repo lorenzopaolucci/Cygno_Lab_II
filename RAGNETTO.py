@@ -77,3 +77,5 @@ for i in np.arange(0,L,1):
       y = i
       z = grid[i][j]
       points_list.append([x,y,z])
+      
+points = np.array(points_list)
