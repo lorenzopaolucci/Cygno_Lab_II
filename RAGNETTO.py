@@ -1,15 +1,16 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 
-info_cluster=0 #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
-plot_cluster=0 #if !=0 plot dei cluster individuati
-plot_2d=0      #if !=0 plot di eff vs min_samples per ogni eps
-print_eff=0    #if !=0 print efficienza per ogni run
+info_cluster=0      #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
+plot_cluster=0      #if !=0 plot dei cluster individuati
+plot_2d=0           #if !=0 plot di eff vs min_samples per ogni eps
+print_eff=0         #if !=0 print efficienza per ogni run
 
 L = 100             # Dimensione griglia
 centers = [[49,49]] # Centro del blob
@@ -17,8 +18,20 @@ n_samples = 1000    # Numero di segnali generati
 sigma = 1.5         # Sigma per la generazione del blob
 sigma_spatial = 10  # Sigma della distribuzione spaziale del blob
 
+min_th = 1 
+max_th = 2
+step_th = 1
 
-for th in np.arange(1,4,1):
+min_eps = 3
+max_eps = 6
+step_eps = 0.5
+
+min_min_samples = 2
+max_min_samples = 26
+step_min_samples = 2
+
+
+for th in np.arange(min_th,max_th,step_th):
 
     eps_range = []       
     best_min_samples = []
@@ -62,8 +75,14 @@ for th in np.arange(1,4,1):
         if s >= th:
           grid[i][j] = np.round(s)
           count += 1
-      
-    print(count)
+
+        if signal[i][j] == 0 and background[i][j] >= th:
+
+          background[i][j] = np.round(background[i][j])
+
+        else:
+
+          background[i][j] = 0 
 
     # Creazione array coordinate per DBSCAN
 
@@ -79,23 +98,31 @@ for th in np.arange(1,4,1):
 
     points = np.array(points_list)
 
-    plt.scatter(points[:,0],points[:,1],c=points[:,2],cmap='gist_heat')
+    #plt.scatter(points[:,0],points[:,1],c=points[:,2],cmap='cool')
+    #fig = matplotlib.pyplot.gcf()
+    #fig.set_size_inches(15, 15)
+    #plt.colorbar()
+    #plt.show()
+    
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf=ax.plot_trisurf(points[:,0],points[:,1],points[:,2],cmap='plasma')
     fig = matplotlib.pyplot.gcf()
-    fig.set_size_inches(15, 15)
-    plt.colorbar()
+    fig.set_size_inches(10, 10)
+    fig.colorbar(surf)
     plt.show()
 
 
     # STUDIO EFFICIENZA DI DBSCAN
 
-    for eps in np.arange(1, 6, 1):
+    for eps in np.arange(min_eps, max_eps, step_eps):
 
         # Plot efficienza
         efficiency_noise_list = []
         min_samples_range = []
 
 
-        for min_samples in np.arange(2, 8, 2):
+        for min_samples in np.arange(min_min_samples, max_min_samples, step_min_samples):
 
             min_samples_range.append(min_samples)
 
@@ -145,3 +172,24 @@ for th in np.arange(1,4,1):
               fig = matplotlib.pyplot.gcf()
               fig.set_size_inches(10, 10)
               plt.show()
+            
+            index_noise = (labels == -1)
+
+            noise = points[index_noise & ~core_samples_mask]
+
+            tot = 0
+            found = 0
+
+            for i in np.arange(0,L,1):
+
+              for j in np.arange(0,L,1):
+
+                if background[i][j] != 0:
+                  tot += 1
+                  for k in np.arange(0,len(noise),1):
+                    if j == noise[k,0] and i == noise[k,1] and background[i][j] == noise[k,2]:
+                      found+=1
+
+            purity = found/tot
+                
+            print(purity,eps,min_samples)
