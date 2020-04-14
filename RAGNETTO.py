@@ -26,11 +26,6 @@ min_eps = 3
 max_eps = 6
 step_eps = 0.5
 
-min_min_samples = 2
-max_min_samples = 26
-step_min_samples = 2
-
-
 for th in np.arange(min_th,max_th,step_th):
 
     eps_range = []       
@@ -67,24 +62,27 @@ for th in np.arange(min_th,max_th,step_th):
     # Somma background+segnale
 
     count=0
+    tot_noise = 0
+
     for j in np.arange(0,L,1):
 
       for i in np.arange(0,L,1):
 
         s = signal[i][j] + background[i][j]
-
         if s >= th:
-
           grid[i][j] = np.round(s)
           count += 1
 
-        if signal[i][j] == 0 and background[i][j] >= th: # Aggiorno background: contiene pixel di "puro" rumore, cioè pixel con segnale nullo e sopra soglia
+        if signal[i][j] == 0 and background[i][j] >= th:
 
           background[i][j] = np.round(background[i][j])
+          tot_noise += 1
 
         else:
 
           background[i][j] = 0 
+    
+    tot_signal = count - tot_noise
 
     # Creazione array coordinate per DBSCAN
 
@@ -123,6 +121,10 @@ for th in np.arange(min_th,max_th,step_th):
         efficiency_noise_list = []
         min_samples_range = []
 
+        min_min_samples = 2*eps
+        max_min_samples = 10*eps
+        step_min_samples = eps
+
         for min_samples in np.arange(min_min_samples, max_min_samples, step_min_samples):
 
             min_samples_range.append(min_samples)
@@ -153,6 +155,9 @@ for th in np.arange(min_th,max_th,step_th):
             colors = [plt.cm.Spectral(each)
             for each in np.linspace(0, 1, len(unique_labels))]             # Sceglie la palette di   colori senza il nero
 
+            efficiency = 0
+            weight_sum = 0
+
             for k, col in zip(unique_labels, colors):                      # Per ogni cluster, associo un colore
             
                 class_member_mask = (labels == k)                          # Seleziona tutti i punti del cluster k
@@ -160,31 +165,36 @@ for th in np.arange(min_th,max_th,step_th):
                 xy_core = points[class_member_mask & core_samples_mask]    # Solo se è nel cluster E è un core point
                 xy_border = points[class_member_mask & ~core_samples_mask] # Solo se è nel cluster E non è core  ==  è un edge point del cluster
                 
-                sum_ = 0
-                eff_partial = 0
+                # Efficienza della clusterizzazione
+
+                phot = 0
                 x = 0
                 y = 0
 
                 if k == -1:
 
-                  col = [0, 0, 0, 1]                                       # Nero per il rumore
+                  col = [0, 0, 0, 1]                          # Nero per il rumore
 
                 else:
 
-                  for i in np.arange(0,len(xy_core),1):
+                  for i in np.arange(0,len(xy_core),1):       # Somme sui pixel contenuti nel cluster k, pesate con il numero di fotoni 
                     
-                    x += xy_core[i][0]
-                    y += xy_core[i][1]
+                    x += xy_core[i][0] * xy_core[i][2]
+                    y += xy_core[i][1] * xy_core[i][2]
+                    phot += xy_core[i][2]
 
                   for i in np.arange(0,len(xy_border),1):
                     
-                    x += xy_border[i][0]
-                    y += xy_border[i][1]
+                    x += xy_border[i][0] * xy_border[i][2]
+                    y += xy_border[i][1] * xy_border[i][2]
+                    phot += xy_border[i][2]
 
-                  dist = np.sqrt((x/(len(xy_core)+len(xy_border))-centers[0][0])**2+(y/(len(xy_core)+len(xy_border))-centers[0][1])**2)
+                  x /= phot
+                  y /= phot
 
-                  mean_dist.append(dist)
-                  members.append(len(xy_core)+len(xy_border))
+                  dist = np.sqrt((x-centers[0][0])**2+(y-centers[0][1])**2)
+                  efficiency += ((tot_signal - abs(tot_signal-len(xy_core)-len(xy_border)) )/tot_signal)*1/dist
+                  weight_sum += 1/dist
 
                 if plot_cluster != 0:
 
@@ -200,17 +210,13 @@ for th in np.arange(min_th,max_th,step_th):
 
             noise = points[index_noise & ~core_samples_mask]
 
-            tot_noise = 0
             found = 0
-            tot = 0
 
             for i in np.arange(0,L,1):
 
               for j in np.arange(0,L,1):
 
                 if background[i][j] != 0:  
-                                                                       # Contatore punti di "puro" rumore
-                  tot_noise += 1         
 
                   for k in np.arange(0,len(noise),1):
 
@@ -218,30 +224,15 @@ for th in np.arange(min_th,max_th,step_th):
                       
                       found+=1
 
-                if grid[i][j] != 0:
-                  
-                  tot+=1                 # Conta il numero totale di pixel accesi
-
-            tot_signal = tot-tot_noise   # Numero totale di pixel accesi dal segnale
-
             false_negatives = len(noise) - found
 
             purity = found/tot_noise * (1-false_negatives/tot_noise)
-              
-            # Efficienza della clusterizzazione
-
-            efficiency = 0
-            weight_sum = 0
 
             if n_clusters_ != 0:
-              for i in np.arange(0,len(members),1):
-
-                efficiency += (members[i]/tot_signal*1/mean_dist[i])
-                weight_sum += 1/mean_dist[i]
 
               efficiency /= weight_sum
 
-              print(purity,false_negatives,efficiency,eps,min_samples)
+            print('Eps: %.2f Min_samples: %.2f Efficiency: %f Purity: %f False Negatives: %d' %(eps,min_samples,efficiency,purity,false_negatives))
 
             if plot_cluster != 0:
 
