@@ -22,15 +22,11 @@ min_th = 1
 max_th = 2
 step_th = 1
 
-min_eps = 3
-max_eps = 6
+min_eps = 4.5
+max_eps = 8
 step_eps = 0.5
 
 for th in np.arange(min_th,max_th,step_th):
-
-    eps_range = []       
-    best_min_samples = []
-    best_eff = []
 
     # Genero L x L pixel 
 
@@ -112,22 +108,15 @@ for th in np.arange(min_th,max_th,step_th):
     fig.colorbar(surf)
     plt.show()
 
-
     # STUDIO EFFICIENZA DI DBSCAN
 
     for eps in np.arange(min_eps, max_eps, step_eps):
-
-        # Plot efficienza
-        efficiency_noise_list = []
-        min_samples_range = []
 
         min_min_samples = 2*eps
         max_min_samples = 10*eps
         step_min_samples = eps
 
         for min_samples in np.arange(min_min_samples, max_min_samples, step_min_samples):
-
-            min_samples_range.append(min_samples)
 
             # CLUSTERING
 
@@ -193,7 +182,16 @@ for th in np.arange(min_th,max_th,step_th):
                   y /= phot
 
                   dist = np.sqrt((x-centers[0][0])**2+(y-centers[0][1])**2)
-                  efficiency += ((tot_signal - abs(tot_signal-len(xy_core)-len(xy_border)) )/tot_signal)*1/dist
+                  eff_partial = ((tot_signal - abs(tot_signal-len(xy_core)-len(xy_border)) )/tot_signal)*1/dist
+
+                  if eff_partial < 0:
+                    
+                    efficiency += 0
+
+                  else:
+
+                    efficiency += eff_partial
+
                   weight_sum += 1/dist
 
                 if plot_cluster != 0:
@@ -232,7 +230,7 @@ for th in np.arange(min_th,max_th,step_th):
 
               efficiency /= weight_sum
 
-            print('Eps: %.2f Min_samples: %.2f Efficiency: %f Purity: %f False Negatives: %d' %(eps,min_samples,efficiency,purity,false_negatives))
+            print('Eps: %.2f Min_samples: %.2f Efficiency: %f Purity: %f False Negatives: %d Efficiency*Purity: %f' %(eps,min_samples,efficiency,purity,false_negatives,efficiency*purity))
 
             if plot_cluster != 0:
 
