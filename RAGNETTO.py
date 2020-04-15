@@ -1,28 +1,29 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import seaborn as sns
 from matplotlib import cm
 from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 
-info_cluster=0      #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
-plot_cluster=1      #if !=0 plot dei cluster individuati
-plot_2d=0           #if !=0 plot di eff vs min_samples per ogni eps
-print_eff=0         #if !=0 print efficienza per ogni run
+info_cluster=0                #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
+plot_cluster=0                #if !=0 plot dei cluster individuati
+plot_2d=0                     #if !=0 plot di eff vs min_samples per ogni eps
+print_eff=0                   #if !=0 print efficienza per ogni run
 
-L = 100             # Dimensione griglia
+L = 100                       # Dimensione griglia
 centers = [[L*0.5-1,L*0.5-1]] # Centro del blob
-n_samples = 10000    # Numero di segnali generati
-sigma = 1.5         # Sigma per la generazione del blob
-sigma_spatial = 10  # Sigma della distribuzione spaziale del blob
+n_samples = 10000             # Numero di segnali generati
+sigma = 1.5                   # Sigma per la generazione del blob
+sigma_spatial = 10            # Sigma della distribuzione spaziale del blob
 
-min_th = 1 
-max_th = 2
-step_th = 1
+min_th = 0.5
+max_th = 2.5
+step_th = 0.5
 
-min_eps = 4.5
+min_eps = 4
 max_eps = 8
 step_eps = 0.5
 
@@ -110,6 +111,10 @@ for th in np.arange(min_th,max_th,step_th):
 
     # STUDIO EFFICIENZA DI DBSCAN
 
+    eps_range = []
+    min_samples_range = []
+    efficiency_best = []
+
     for eps in np.arange(min_eps, max_eps, step_eps):
 
         min_min_samples = 2*eps
@@ -119,6 +124,9 @@ for th in np.arange(min_th,max_th,step_th):
         for min_samples in np.arange(min_min_samples, max_min_samples, step_min_samples):
 
             # CLUSTERING
+
+            eps_range.append(eps)
+            min_samples_range.append(min_samples)
 
             db = DBSCAN(eps, min_samples).fit(points)                   
             core_samples_mask = np.zeros_like(db.labels_,dtype=bool)       # Inizializza un array booleano, della stessa forma di labels_
@@ -137,8 +145,6 @@ for th in np.arange(min_th,max_th,step_th):
             members = []
 
             # Plot dei cluster individuati
-
-            import matplotlib.pyplot as plt
 
             unique_labels = set(labels)
             colors = [plt.cm.Spectral(each)
@@ -191,7 +197,7 @@ for th in np.arange(min_th,max_th,step_th):
                   else:
 
                     efficiency += eff_partial
-
+                  
                   weight_sum += 1/dist
 
                 if plot_cluster != 0:
@@ -229,8 +235,15 @@ for th in np.arange(min_th,max_th,step_th):
             if n_clusters_ != 0:
 
               efficiency /= weight_sum
+              
+              efficiency_best.append(efficiency*purity)
 
-            print('Eps: %.2f Min_samples: %.2f Efficiency: %f Purity: %f False Negatives: %d Efficiency*Purity: %f' %(eps,min_samples,efficiency,purity,false_negatives,efficiency*purity))
+            else:
+
+              efficiency_best.append(0)
+              
+            if print_eff != 0:
+              print('Eps: %.2f Min_samples: %.2f Efficiency: %f Purity: %f False Negatives: %d Efficiency*Purity: %f' %(eps,min_samples,efficiency,purity,false_negatives,efficiency*purity))
 
             if plot_cluster != 0:
 
@@ -238,3 +251,42 @@ for th in np.arange(min_th,max_th,step_th):
               fig = matplotlib.pyplot.gcf()
               fig.set_size_inches(10, 10)
               plt.show()
+
+    max_efficiency = max(efficiency_best)
+    index = efficiency_best.index(max(efficiency_best))
+
+    # Marginalizzazione
+
+    db = DBSCAN(eps_range[index], min_samples_range[index]).fit(points)
+
+    core_samples_mask = np.zeros_like(db.labels_,dtype=bool)       
+    core_samples_mask[db.core_sample_indices_] = True     
+
+    labels = db.labels_
+    unique_labels = set(labels)
+
+    x_ = []
+    y_ = []
+
+    for k, col in zip(unique_labels, colors):                      
+            
+      if k != -1:
+        class_member_mask = (labels == k)                          
+        xy_core = points[class_member_mask & core_samples_mask]    
+        xy_border = points[class_member_mask & ~core_samples_mask] 
+
+        for i in np.arange(0,len(xy_core),1):
+
+          x_.append(xy_core[i,0])
+          y_.append(xy_core[i,1])
+
+        for i in np.arange(0,len(xy_border),1):
+
+          x_.append(xy_border[i,0])
+          y_.append(xy_border[i,1])
+      
+
+    sns.jointplot(x=x_, y=y_, kind='scatter')
+
+
+    print('Threshold: %.2f Eps: %.2f Min_samples: %.2f Best efficiency: %f' %(th,eps_range[index],min_samples_range[index],max_efficiency))
