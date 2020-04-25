@@ -1,3 +1,130 @@
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+import os
+from matplotlib import cm
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+from scipy.stats import norm
+from sklearn.datasets import make_blobs
+from sklearn.preprocessing import StandardScaler
+from scipy.optimize import curve_fit
+
+L = 50                            # Dimensione griglia
+centers = [[(L-1)*0.5,(L-1)*0.5]] # Centro del blob
+sigma_noise = 2                   # Sigma del rumore
+sigma_spatial = 4                 # Sigma della distribuzione spaziale del blob (in pixel)
+n_samples =3000                   # Numero di segnali generati
+th = 1.5*sigma_noise
+
+os.system('mkdir -p runs')
+os.chdir('runs') 
+
+for run in np.arange(0,100,1):
+
+    # Genero le griglie
+
+    grid = np.zeros((L,L))        # Contiene le "coordinate" di ogni pixel, e il valore del segnale
+    background = np.zeros((L,L))  # Griglia background
+    signal = np.zeros((L,L))      # Griglia segnale
+
+    # Genero il fondo
+
+    for i in np.arange(0,L,1):
+
+      for j in np.arange(0,L,1):
+
+        r = np.random.normal(0,2)
+        background[i][j] = r
+
+    # Genero il blob
+
+    X, blob_labels = make_blobs(n_samples=n_samples, centers=centers, cluster_std=sigma_spatial, random_state=0)
+
+    # Discretizzazione del blob
+
+    for j in np.arange(0,len(X),1):
+
+      x = int(np.round(X[j][0]))
+      y = int(np.round(X[j][1]))
+
+      signal[x][y] += 1
+
+    # Somma background+segnale
+
+    count=0
+    tot_noise = 0
+
+    for j in np.arange(0,L,1):
+
+      for i in np.arange(0,L,1):
+
+        s = signal[i][j] + background[i][j]
+
+        if s >= th:
+
+          grid[i][j] = np.round(s)
+          count += 1
+
+        if signal[i][j] == 0 and background[i][j] >= th: # Contiene solo il rumore "puro", cioè quello che non si somma al segnale
+
+          background[i][j] = np.round(background[i][j])
+          tot_noise += 1
+
+        else:
+
+          background[i][j] = 0
+
+        if s >= th and signal[i][j] != 0:                # Contiene solo il segnale (a cui ora si è aggiunto il rumore)
+
+          signal[i][j] = np.round(s)
+
+        else:
+
+          signal[i][j] = 0
+
+    tot_signal = count - tot_noise                       # Numero totale di pixel di rumore
+
+    # Creazione array coordinate per DBSCAN
+
+    points_list = []
+    signal_list = []
+    background_list= []
+    phot = 0
+     
+    for i in np.arange(0,L,1):
+
+      for j in np.arange(0,L,1):
+
+        if grid[i][j] != 0:
+
+          points_list.append([j,i,grid[i][j]])
+
+        if signal[i][j] != 0:
+          signal_list.append([j,i,signal[i][j]])
+          phot += signal[i][j]
+     
+        if background[i][j] != 0:
+          background_list.append([j,i,background[i][j]])
+
+    points = np.array(points_list)
+    signal_plot = np.array(signal_list)
+    background_plot = np.array(background_list)
+
+    # Esportazione dataframe
+
+    df1 = pd.DataFrame(points, index=None)
+    df2 = pd.DataFrame(signal_plot, index=None)
+    df3 = pd.DataFrame(background_plot, index=None)
+
+    df1.to_csv('grid_%d.csv' %run,index_label=False)
+    df2.to_csv('signal_%d.csv' %run,index_label=False)
+    df3.to_csv('background_%d.csv' %run,index_label=False)
+
+    #print('%d Background pixels generated over threshold, %d Signal photons (summed with background) over threshold in %d pixels' %(len(background_plot),phot,len(signal_plot)))
+
+
 info_cluster = 0                #if !=0 print numero di cluster individuati, numero di punti rumore, parametri l'efficienza
 plot_cluster = 0                #if !=0 plot dei cluster individuati
 print_eff    = 0                #if !=0 print efficienza per ogni run
